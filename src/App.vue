@@ -4,8 +4,8 @@
       <div class="loader"></div>
     </div>
     <div class="background-video-container">
-      <video ref="backgroundVideo" loop muted preload="metadata">
-        <source src="./assets/1sec.mp4" type="video/mp4" />
+      <video ref="backgroundVideo" muted preload="auto" :class="{ hidden: isLoading }">
+        <source src="./assets/Dark.mp4" type="video/mp4" />
         Your browser does not support the video tag.
       </video>
     </div>
@@ -26,14 +26,18 @@ export default {
     return {
       scrollPosition: 0,
       isLoading: true,
+      videoDuration: 0,
     }
   },
   mounted() {
-    window.addEventListener('scroll', this.onScroll)
-    this.$refs.backgroundVideo.addEventListener('loadedmetadata', this.bgVideoLoaded)
+    const backgroundVideo = this.$refs.backgroundVideo
+    window.addEventListener('scroll', this.handleScroll)
+    backgroundVideo.addEventListener('loadeddata', this.bgVideoLoaded)
+    console.log('isLoading: ', this.isLoading)
+    console.log('videoDuration: ', this.videoDuration)
   },
   beforeUnmount() {
-    window.removeEventListener('scroll', this.onScroll)
+    window.removeEventListener('scroll', this.handleScroll)
   },
   computed: {
     viwportHeight() {
@@ -48,24 +52,35 @@ export default {
   },
   methods: {
     bgVideoLoaded() {
+      const backgroundVideo = this.$refs.backgroundVideo
+      backgroundVideo.play()
+      backgroundVideo.playbackRate = 4.0
+      backgroundVideo.addEventListener('ended', this.bgVideoFullyLoded)
+    },
+    bgVideoFullyLoded() {
+      const backgroundVideo = this.$refs.backgroundVideo
       this.isLoading = false
+      this.videoDuration = backgroundVideo.duration
     },
-    onScroll() {
+    handleScroll() {
+      if (this.isLoading) return
+      const backgroundVideo = this.$refs.backgroundVideo
       this.scrollPosition = window.scrollY
-      this.controlVideoPlayback()
-    },
-    controlVideoPlayback() {
-      let percentage = 1 - (this.scrollLength - this.scrollPosition) / this.scrollLength
-      let newTime = percentage * this.$refs.backgroundVideo.duration
-      this.$refs.backgroundVideo.currentTime = newTime
+      let percentage = this.scrollPosition / this.scrollLength
+      let newTime = percentage * this.videoDuration
+      backgroundVideo.currentTime = newTime
     },
   },
 }
 </script>
 
 <style scoped>
+.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
 .loading {
-  overflow: hidden;
+  overflow: hidden !important;
 }
 .loading .loader-container {
   display: flex;
@@ -94,6 +109,7 @@ export default {
   border-radius: 50%;
   box-sizing: border-box;
   animation: 1s rotate linear infinite;
+  overflow: hidden;
 }
 .loader:before,
 .loader:after {
